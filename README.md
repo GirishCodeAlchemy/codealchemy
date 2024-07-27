@@ -14,11 +14,12 @@ pip install codealchemy
 
 Here is how you can use the decorators provided by `codealchemy` in your Python code:
 
-```python
-from codealchemy import log_execution_time, log_group
+1. code execution time
 
-@log_execution_time
-@log_group("ExampleGroup")
+```python
+from codealchemy import code_execution_time
+
+@code_execution_time
 def example_function():
     import time
     time.sleep(2)
@@ -27,9 +28,43 @@ def example_function():
 example_function()
 ```
 
+2. Log groups
+
+```python
+
+from codealchemy import log_group
+import logging
+
+# Ensure the logger level is set to INFO
+logging.getLogger(__name__).setLevel(logging.INFO)
+
+@log_group("MainGroup")
+def main_function():
+    print("Inside main function")
+    print("*"*20)
+    logging.info("Inside main function")
+    inner_function()
+
+@log_group("InnerGroup")
+def inner_function():
+    print("Inside inner function")
+    print("*"*20)
+    logging.info("Inside inner function")
+    innermost_function()
+
+@log_group("InnermostGroup")
+def innermost_function():
+    print("Inside innermost function")
+    print("*"*20)
+    logging.info("Inside innermost function")
+    print("Innermost function executed")
+
+main_function()
+```
+
 ### Decorators
 
-- **`log_execution_time`**: This decorator logs the execution time of the decorated function.
+- **`code_execution_time`**: This decorator logs the execution time of the decorated function.
 - **`log_group(group_name)`**: This decorator logs entry and exit points of the decorated function, grouping logs under a specified group name.
 
 ## Development
