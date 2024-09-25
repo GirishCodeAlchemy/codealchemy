@@ -61,6 +61,7 @@ def innermost_function():
 
 main_function()
 ```
+![image](https://github.com/user-attachments/assets/15495373-711d-4b72-9fbb-32acb80c110b)
 
 ### Decorators
 
