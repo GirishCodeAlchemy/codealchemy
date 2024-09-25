@@ -9,7 +9,7 @@ setup(
     author="GirishCodeAlchemy",
     author_email="girishcodealchemy@gmail.com",
     description="A package with decorators to capture execution time and create log groups for functions.",
-    long_description=open('README.md').read(),
+    long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/girishcodealchemy/codealchemy",
     classifiers=[
@@ -17,5 +17,5 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
