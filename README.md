@@ -1,4 +1,7 @@
 # CodeAlchemy
+[![PyPI version](https://img.shields.io/pypi/v/codealchemy)](https://pypi.org/project/codealchemy/)
+![License](https://img.shields.io/pypi/l/codealchemy)
+![Python versions](https://img.shields.io/pypi/pyversions/codealchemy)
 
 `codealchemy` is a Python package that provides decorators for capturing the execution time of functions and creating log groups for functions. This package can be used to enhance logging and performance monitoring in your Python projects.
 
