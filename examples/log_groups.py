@@ -29,19 +29,4 @@ def innermost_function():
     print("Innermost function executed")
 
 
-# @log_group("2MainGroup")
-# def new_main_function():
-#     print("====New 1Inside main function===")
-#     print("*"*20)
-#     logging.info("New Inside main function")
-#     new_inner_function()
-
-# @log_group("2InnerGroup")
-# def new_inner_function():
-#     print("====2Inside inner function====")
-#     print("*"*20)
-#     logging.info("New Inside inner function")
-
-
 main_function()
-# new_main_function()
