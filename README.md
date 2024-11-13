@@ -1,9 +1,16 @@
 # CodeAlchemy
+
 [![PyPI version](https://img.shields.io/pypi/v/codealchemy)](https://pypi.org/project/codealchemy/)
 ![License](https://img.shields.io/pypi/l/codealchemy)
 ![Python versions](https://img.shields.io/pypi/pyversions/codealchemy)
 
-`codealchemy` is a Python package that provides decorators for capturing the execution time of functions and creating log groups for functions. This package can be used to enhance logging and performance monitoring in your Python projects.
+`codealchemy` is a Python package that provides decorators and utilities for Development
+`CodeAlchemy` is a versatile Python package designed to simplify development workflows by providing powerful decorators for logging, performance monitoring, and utilities. Whether you're looking to track function execution times, group logs for better readability, or Utility methods to interact with other services.
+
+### Key Features:
+
+- **Decorators**: Enhance your Python functions with performance tracking and logging capabilities.
+- **Kafka Utilities**: Easily produce and consume messages with Kafka, with advanced features like round-robin message distribution and offset management.
 
 ## Installation
 
@@ -15,7 +22,12 @@ pip install codealchemy
 
 ## Usage
 
-Here is how you can use the decorators provided by `codealchemy` in your Python code:
+Here is how you can use the `codealchemy` package in your Python code:
+
+### Decorators
+
+- **`code_execution_time`**: This decorator logs the execution time of the decorated function.
+- **`log_group(group_name)`**: This decorator logs entry and exit points of the decorated function, grouping logs under a specified group name.
 
 1. code execution time
 
@@ -64,62 +76,96 @@ def innermost_function():
 
 main_function()
 ```
+
 ![image](https://github.com/user-attachments/assets/15495373-711d-4b72-9fbb-32acb80c110b)
 
-### Decorators
+### Utility
 
-- **`code_execution_time`**: This decorator logs the execution time of the decorated function.
-- **`log_group(group_name)`**: This decorator logs entry and exit points of the decorated function, grouping logs under a specified group name.
+- **`kafkaUtils`**: A utility module that simplifies Kafka-related operations for Python developers.
 
-## Development
+1. Kafka Producer:
+   The Kafka producer sends messages to Kafka topics. Here's how you can use it:
 
-If you want to contribute to the development of `codealchemy`, you can set up a development environment by following these steps:
+   ```python
+   from codealchemy import kafkaUtils
 
-1.  Clone the repository:
-    ```sh
-    git clone https://github.com/girishcodealchemy/codealchemy.git
-    ```
-2.  Navigate to the project directory:
-    ```sh
-    cd codealchemy
-    ```
-3.  Install the package in editable mode with development dependencies:
-    ```sh
-    pip install -e .[dev]
-    ```
+   config_file = "config.json"
+   topic = "topic_name"
 
-## Publishing to PyPI
+   producer = kafkaUtils.KafkaProducer(config_file, topic)
 
-This project uses GitHub Actions to automate the process of publishing the package to PyPI.
 
-### GitHub Action Workflow
+   print("\nProducing Messages to default partition:")
+   # Send messages to default partitions
+   for i in range(10):
+       # Construct the message payload
+       message = {"key": i, "value": f"Test message {i}"}
+       producer.send_message(message)
+   # Flush to ensure all messages are sent
+   producer.flush()
+   print("\nLatest offsets:")
+   producer.display_partition_offsets()
 
-The GitHub Action is defined in `.github/workflows/publish-to-pypi.yml`. It triggers on new releases and performs the following steps:
 
-1.  Checkout the code.
-2.  Set up Python.
-3.  Install dependencies (`setuptools`, `wheel`, `twine`).
-4.  Build the package.
-5.  Publish the package to PyPI using credentials stored in GitHub Secrets.
+   print("\nProducing Messages to Particular partition:")
+   # Send messages to specific partitions
+   for i in range(10):
+       # Construct the message payload
+       message = {"key": i, "value": f"Test message {i}"}
+       producer.send_message(message, partition=1)
+   producer.flush()
+   print("\nLatest offsets:")
+   producer.display_partition_offsets()
 
-### Setting Up GitHub Secrets
 
-To securely store your PyPI credentials, add the following secrets to your GitHub repository:
+   print("\nProducing Messages in Round Robin:")
+   # Send messages in a round-robin fashion across partitions
+   for i in range(10):
+       message = {"key": i, "value": f"Test message {i}"}
+       producer.send_message_round_robin(message)
+   producer.flush()
+   print("\nLatest offsets:")
+   producer.display_partition_offsets()
+   ```
 
-1.  `PYPI_USERNAME`: Your PyPI username.
-2.  `PYPI_PASSWORD`: Your PyPI password.
+2. Kafka Consumer:
+   The Kafka consumer consumes messages from Kafka topics. Here's how you can use it:
 
-### Creating a New Release
+   ```python
+   from codealchemy import kafkaUtils
 
-To trigger the GitHub Action and publish the package to PyPI:
+   config_file = "config.json"
+   topic = "topic_name"
+   group_id = "group_id"
 
-1.  Navigate to your GitHub repository.
-2.  Go to the `Releases` tab.
-3.  Click `Draft a new release`.
-4.  Fill in the release details (tag version, release title, description).
-5.  Click `Publish release`.
+   auto_offset = "earliest"
+    # earliest -->Start from the beginning if no previous offset exists
+    # latest -->Start from the end if no previous offset exists
 
-The GitHub Action will automatically run and upload the package to PyPI.
+   consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id, auto_offset)
+   consumer.consume_messages()
+
+   ```
+
+   If you need to consume from particular offset
+
+   ```python
+   consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id, auto_offset, offset=10)
+   consumer.consume_from_offset(partition=1, offset=2350)
+   ```
+
+   Sample `config.json`
+
+   ```json
+   {
+     "bootstrap.servers": "kafkabroker:9093",
+     "security.protocol": "SSL",
+     "ssl.key.password": "Password@1",
+     "ssl.certificate.location": "/etc/secrets/kafka/truststore.pem",
+     "ssl.key.location": "/etc/secrets/kafka/keystore.pem",
+     "ssl.ca.location": "/etc/secrets/kafka/caroot.pem"
+   }
+   ```
 
 ## License
 
