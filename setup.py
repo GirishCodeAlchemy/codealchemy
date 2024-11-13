@@ -3,12 +3,12 @@ from setuptools import find_packages, setup
 
 setup(
     name="codealchemy",
-    version="1.1",
+    version="1.2.0",
     packages=find_packages(),
     install_requires=[],
     author="GirishCodeAlchemy",
     author_email="girishcodealchemy@gmail.com",
-    description="A package with decorators to capture execution time and create log groups for functions.",
+    description="CodeAlchemy is a Python package that provides utility and decorators for development.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/girishcodealchemy/codealchemy",
