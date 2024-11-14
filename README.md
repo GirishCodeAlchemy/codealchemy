@@ -4,7 +4,6 @@
 ![License](https://img.shields.io/pypi/l/codealchemy)
 ![Python versions](https://img.shields.io/pypi/pyversions/codealchemy)
 
-`codealchemy` is a Python package that provides decorators and utilities for Development
 `CodeAlchemy` is a versatile Python package designed to simplify development workflows by providing powerful decorators for logging, performance monitoring, and utilities. Whether you're looking to track function execution times, group logs for better readability, or Utility methods to interact with other services.
 
 ### Key Features:
