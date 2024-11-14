@@ -151,7 +151,16 @@ main_function()
 
    ```python
    consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id, auto_offset, offset=10)
-   consumer.consume_from_offset(partition=1, offset=2350)
+   consumer.consume_from_offset(offset=2350, partition=1)
+   # consumer.consume_from_offset(offset=2350) # For all partition
+   ```
+
+   If you need to consume from particular timestamp
+
+   ```python
+   consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id, auto_offset, offset=10)
+   consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z", partition=1)
+   # consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z") # For all partition
    ```
 
    Sample `config.json`

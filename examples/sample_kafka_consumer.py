@@ -5,8 +5,9 @@ config_file = "config.json"
 topic = "topic-1"
 group_id = "group_id"
 
-auto_offset = "earliest"  # Start from the beginning if no previous offset exists
-# auto_offset = "latest" # Start from the beginning if no previous offset exists
+auto_offset = "earliest"
+# earliest -->Start from the beginning if no previous offset exists
+# latest -->Start from the end if no previous offset exists
 
 consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id)
 
