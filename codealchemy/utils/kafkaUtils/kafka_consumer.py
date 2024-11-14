@@ -132,11 +132,8 @@ class KafkaConsumer:
         metadata = self.consumer.list_topics(self.topic)
         return list(metadata.topics[self.topic].partitions.keys())
 
-    def consume_messages(self, timeout=1.0):
-        # Subscribe to the specified topic
-        self.consumer.subscribe([self.topic])
-
-        print("Starting to consume messages...")
+    def start_consuming_message(self, timeout=1.0):
+        print("\nStarting to consume messages...")
         try:
             while True:
                 msg = self.consumer.poll(timeout)
@@ -166,41 +163,90 @@ class KafkaConsumer:
             # Close the consumer to release resources
             self.consumer.close()
 
-    def consume_from_offset(self, partition, offset, timeout=1.0):
+    def consume_messages(self, timeout=1.0):
+        # Subscribe to the specified topic
+        self.consumer.subscribe([self.topic])
+        self.start_consuming_message(timeout)
+
+    def consume_from_offset(self, offset, partition=None, timeout=1.0):
         # Assign a specific partition and offset to start consuming from
-        tp = TopicPartition(self.topic, partition, offset)
-        self.consumer.assign([tp])
+        if partition is not None:
+            # Assign a specific partition and offset
+            tp = TopicPartition(self.topic, partition, offset)
+            self.consumer.assign([tp])
+            print(
+                f"Starting to consume messages from {self.topic} partition: [{partition}] at offset: {offset}..."
+            )
+        else:
+            # Assign all partitions with the specified offset
+            tp_list = [
+                TopicPartition(self.topic, p, offset) for p in self.get_partitions()
+            ]
+            self.consumer.assign(tp_list)
+            print(
+                f"Starting to consume messages from {self.topic} across all partitions at offset {offset}..."
+            )
+        self.start_consuming_message(timeout)
 
-        print(
-            f"Starting to consume messages from {self.topic} partition {partition} at offset {offset}..."
-        )
+    def consume_from_timestamp(self, timestamp, partition=None, timeout=1.0):
+        print(f"Consume messages from the specified timestamp {timestamp}...\n")
+        # Convert string to datetime object
+        from_timestamp = None
         try:
-            while True:
-                msg = self.consumer.poll(timeout)
-                if msg is None:
-                    continue
-                if msg.error():
-                    if msg.error().code() == KafkaException._PARTITION_EOF:
-                        print(f"Reached end of partition {msg.partition()}")
-                    else:
-                        print(f"Error: {msg.error()}")
-                    continue
+            # Try to parse the date string with the expected format
+            from_timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+        except ValueError:
+            # Raise an error if the format does not match
+            raise ValueError(
+                "Date string does not match the format '%Y-%m-%dT%H:%M:%S.%fZ'"
+            )
 
-                # Display message details
-                timestamp_type, timestamp = msg.timestamp()
-                human_readable_timestamp = datetime.fromtimestamp(
-                    timestamp / 1000
-                ).strftime("%Y-%m-%d %H:%M:%S")
-                print(f"Received message: {msg.value().decode('utf-8')}")
+        # Convert timestamp to milliseconds for Kafka
+        timestamp_ms = int(from_timestamp.timestamp() * 1000)
+
+        # # Get metadata for partitions
+        if partition is not None:
+            # Assign a specific partition and offset
+            partitions = [TopicPartition(self.topic, partition)]
+        else:
+            partitions = [TopicPartition(self.topic, p) for p in self.get_partitions()]
+
+        # Create OffsetSpec based on the provided timestamp
+        topic_partition_offsets = {
+            partition: OffsetSpec(timestamp_ms) for partition in partitions
+        }
+
+        # Retrieve the offsets corresponding to the timestamp
+        futmap = self.admin_client.list_offsets(
+            topic_partition_offsets, isolation_level=IsolationLevel.READ_COMMITTED
+        )
+        assigned_partitions = []
+
+        print("*" * 200)
+        for partition, fut in futmap.items():
+            try:
+                result = fut.result()
+                # Assign the consumer to the retrieved offset
+                if result.offset != OFFSET_INVALID:
+                    tp = TopicPartition(
+                        partition.topic, partition.partition, result.offset
+                    )
+                    assigned_partitions.append(tp)
+                    print(
+                        f"Assigned to {partition.topic} partition: [{partition.partition}] starting at offset: {result.offset} with timestamp: {datetime.fromtimestamp(result.timestamp / 1000)}"
+                    )
+                else:
+                    print(
+                        f"No messages found for {partition.topic} partition: [{partition.partition}] at the given timestamp."
+                    )
+            except KafkaException as e:
                 print(
-                    f"Topic: {msg.topic()}, Partition: {msg.partition()}, Offset: {msg.offset()}, Timestamp: {human_readable_timestamp}"
+                    f"Error retrieving offsets for {partition.topic} partition {partition.partition}: {e}"
                 )
-
-        except KeyboardInterrupt:
-            print("Stopped consuming.")
-        finally:
-            # Close the consumer to release resources
-            self.consumer.close()
+        print("*" * 200)
+        # Assign the consumer to start consuming from the calculated offsets
+        self.consumer.assign(assigned_partitions)
+        self.start_consuming_message(timeout)
 
 
 # Usage example
