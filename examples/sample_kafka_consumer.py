@@ -1,0 +1,22 @@
+from codealchemy import kafkaUtils
+
+# Initialize consumer with the configuration file, topic name, and group ID
+config_file = "config.json"
+topic = "topic-1"
+group_id = "group_id"
+
+auto_offset = "earliest"  # Start from the beginning if no previous offset exists
+# auto_offset = "latest" # Start from the beginning if no previous offset exists
+
+consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id)
+
+# Press enter to start the consuming message
+input("Press Enter to start consuming messages...")
+
+# Start consuming messages and various options
+
+consumer.consume_messages()
+# consumer.consume_from_offset(partition=1, offset=2413)
+# consumer.consume_from_offset(offset=2143)
+# consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z", partition=1)
+# consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z")

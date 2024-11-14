@@ -251,7 +251,6 @@ class KafkaConsumer:
 
 # Usage example
 if __name__ == "__main__":
-    # Initialize producer with the configuration file and topic name
     # Initialize consumer with the configuration file, topic name, and group ID
     config_file = "config.json"
     topic = "topic-1"
