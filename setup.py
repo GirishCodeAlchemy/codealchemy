@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="codealchemy",
-    version="1.2.3",
+    version="1.2.4",
     packages=find_packages(),
     install_requires=[
         "confluent-kafka==2.6.0",
