@@ -149,17 +149,24 @@ main_function()
    If you need to consume from particular offset
 
    ```python
-   consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id, auto_offset, offset=10)
-   consumer.consume_from_offset(offset=2350, partition=1)
-   # consumer.consume_from_offset(offset=2350) # For all partition
+   consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id)
+   consumer.consume_messages(offset=2350, partition=1)
+   # consumer.consume_messages(offset=2350) # For all partition
    ```
 
    If you need to consume from particular timestamp
 
    ```python
-   consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id, auto_offset, offset=10)
-   consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z", partition=1)
-   # consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z") # For all partition
+   consumer = kafkaUtils.KafkaConsumer(config_file, topic, group_id)
+   consumer.consume_messages(timestamp="2024-11-13T22:39:00.999Z", partition=1)
+   # consumer.consume_messages(timestamp="2024-11-13T22:39:00.999Z") # For all partition
+   ```
+
+   If you need to list all the Consumer Group Offset
+
+   ```python
+   consumer_info = kafkaUtils.KafkaConsumer(config_file, topic)
+   consumer_info.list_consumer_groups_offsets(timestamp="2024-11-13T22:39:00.999Z", partition=1)
    ```
 
    Sample `config.json`
