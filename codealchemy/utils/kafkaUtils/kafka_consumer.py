@@ -30,6 +30,7 @@ class KafkaConsumer:
             )
 
         self.admin_client = AdminClient(self.config)
+        self.topic = topic
         # Set the group ID in the configuration
         if group_id:
             self.config["auto.offset.reset"] = auto_offset
@@ -272,7 +273,7 @@ class KafkaConsumer:
                 print(e)
         return number_of_partitions
 
-    def get_topic_offset(self, partition_count):
+    def get_topic_offset(self, topic, partition_count):
         partitions = [TopicPartition(topic, p) for p in range(partition_count)]
         topic_partition_offsets = {}
         for each_partitions in partitions:
@@ -301,7 +302,7 @@ class KafkaConsumer:
         consumer_groups = self.admin_client.list_groups(timeout=10)
         partition_count = self.get_number_of_partitions(self.topic)
 
-        topic_latest_offset = self.get_topic_offset(partition_count)
+        topic_latest_offset = self.get_topic_offset(self.topic, partition_count)
 
         table_data = []
         if progressbar:

@@ -16,7 +16,7 @@ license = { text = "MIT" }
 include = ["pyproject.toml", "README.md", "LICENSE"]
 classifiers = [
     "Intended Audience :: Developers",
-    "Topic :: Software Development :: Utility",
+    "Topic :: Software Development :: Build Tools",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
