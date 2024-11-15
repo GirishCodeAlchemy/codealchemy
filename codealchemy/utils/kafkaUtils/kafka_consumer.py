@@ -1,19 +1,23 @@
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 from confluent_kafka import (
     OFFSET_INVALID,
     Consumer,
+    ConsumerGroupTopicPartitions,
     IsolationLevel,
     KafkaException,
+    TopicCollection,
     TopicPartition,
 )
 from confluent_kafka.admin import AdminClient, OffsetSpec
 from tabulate import tabulate
+from tqdm import tqdm
 
 
 class KafkaConsumer:
-    def __init__(self, config_file, topic, group_id, auto_offset="earliest"):
+    def __init__(self, config_file, topic, group_id=None, auto_offset="earliest"):
         # Load Kafka configuration from a JSON file
         with open(config_file, "r") as file:
             self.config = json.load(file)
@@ -27,13 +31,13 @@ class KafkaConsumer:
 
         self.admin_client = AdminClient(self.config)
         # Set the group ID in the configuration
-        self.config["group.id"] = group_id
-        self.config["auto.offset.reset"] = auto_offset
-
-        # Initialize the Kafka consumer
-        self.consumer = Consumer(self.config)
-        self.topic = topic
-        self.display_partition_offsets_and_lag()
+        if group_id:
+            self.config["auto.offset.reset"] = auto_offset
+            self.config["group.id"] = group_id
+            self.consumer_group_id = group_id
+            # Initialize the Kafka consumer
+            self.consumer = Consumer(self.config)
+            self.display_partition_offsets_and_lag()
 
     def display_partition_offsets_and_lag(self):
         topic = self.topic
@@ -105,6 +109,7 @@ class KafkaConsumer:
                 [
                     partition.topic,
                     partition.partition,
+                    self.consumer_group_id,
                     offset,
                     lag,
                     topic_latest_offset[partition.partition][0],
@@ -118,6 +123,7 @@ class KafkaConsumer:
                 headers=[
                     "Topic",
                     "Partition",
+                    "Consumer Group",
                     "Consumer Offset",
                     "Lag",
                     "Topic Offset",
@@ -163,12 +169,20 @@ class KafkaConsumer:
             # Close the consumer to release resources
             self.consumer.close()
 
-    def consume_messages(self, timeout=1.0):
+    def consume_messages(
+        self, offset=None, timestamp=None, partition=None, timeout=1.0
+    ):
         # Subscribe to the specified topic
-        self.consumer.subscribe([self.topic])
+        if offset is not None:
+            self.set_consumer_from_offset(offset, partition)
+        elif timestamp is not None:
+            self.set_consumer_from_timestamp(timestamp, partition)
+        else:
+            self.consumer.subscribe([self.topic])
+
         self.start_consuming_message(timeout)
 
-    def consume_from_offset(self, offset, partition=None, timeout=1.0):
+    def set_consumer_from_offset(self, offset, partition=None):
         # Assign a specific partition and offset to start consuming from
         if partition is not None:
             # Assign a specific partition and offset
@@ -186,9 +200,8 @@ class KafkaConsumer:
             print(
                 f"Starting to consume messages from {self.topic} across all partitions at offset {offset}..."
             )
-        self.start_consuming_message(timeout)
 
-    def consume_from_timestamp(self, timestamp, partition=None, timeout=1.0):
+    def set_consumer_from_timestamp(self, timestamp, partition=None):
         print(f"Consume messages from the specified timestamp {timestamp}...\n")
         # Convert string to datetime object
         from_timestamp = None
@@ -222,7 +235,7 @@ class KafkaConsumer:
         )
         assigned_partitions = []
 
-        print("*" * 200)
+        print("*" * 150)
         for partition, fut in futmap.items():
             try:
                 result = fut.result()
@@ -243,10 +256,139 @@ class KafkaConsumer:
                 print(
                     f"Error retrieving offsets for {partition.topic} partition {partition.partition}: {e}"
                 )
-        print("*" * 200)
-        # Assign the consumer to start consuming from the calculated offsets
+        print("*" * 150)
         self.consumer.assign(assigned_partitions)
-        self.start_consuming_message(timeout)
+
+    def get_number_of_partitions(self, topic):
+        topics = TopicCollection(topic_names=[topic])
+        futureMap = self.admin_client.describe_topics(topics)
+        number_of_partitions = 0
+
+        for _, future in futureMap.items():
+            try:
+                t = future.result()
+                number_of_partitions = len(t.partitions)
+            except Exception as e:
+                print(e)
+        return number_of_partitions
+
+    def get_topic_offset(self, partition_count):
+        partitions = [TopicPartition(topic, p) for p in range(partition_count)]
+        topic_partition_offsets = {}
+        for each_partitions in partitions:
+            topic_partition_offsets[each_partitions] = OffsetSpec.max_timestamp()
+
+        futmap = self.admin_client.list_offsets(
+            topic_partition_offsets,
+            isolation_level=IsolationLevel.READ_COMMITTED,
+            request_timeout=30,
+        )
+
+        topic_latest_offset = {}
+        for partition, fut in futmap.items():
+            try:
+                result = fut.result()
+                topic_latest_offset[partition.partition] = result.offset + 1
+            except KafkaException as e:
+                print(
+                    f"Error retrieving offsets for {partition.topic} partition {partition.partition}: {e}"
+                )
+
+        return topic_latest_offset
+
+    def list_consumer_groups_offsets(self, progressbar=None):
+        topic = self.topic
+        consumer_groups = self.admin_client.list_groups(timeout=10)
+        partition_count = self.get_number_of_partitions(self.topic)
+
+        topic_latest_offset = self.get_topic_offset(partition_count)
+
+        table_data = []
+        if progressbar:
+            progressbar = tqdm(
+                total=len(consumer_groups),
+                desc=f"Fetching the Consumer Group offset for the topic {topic}",
+                unit="file",
+            )
+        else:
+            print(f"Fetching the Consumer Group offset for the topic {topic}")
+        with ThreadPoolExecutor(max_workers=300) as executor:
+            futures = []
+            for group_metadata in consumer_groups:
+                futures.append(
+                    executor.submit(
+                        find_consumer_group_offsets_for_topic,
+                        self.config,
+                        group_metadata.id,
+                        topic,
+                        topic_latest_offset,
+                        progressbar,
+                    )
+                )
+
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    table_data.extend(result)
+
+        print(
+            tabulate(
+                table_data,
+                headers={
+                    "consumer_group": "Consumer Group",
+                    "topic": "TopicName",
+                    "partition": "Partition",
+                    "consumer_offset": "Consumer Offset",
+                    "lag": "Lag",
+                    "topic_offset": "Topic Offset",
+                },
+                tablefmt="grid",
+            )
+        )
+
+
+def find_consumer_group_offsets_for_topic(
+    config, group_id, topic_name, topic_latest_offset=None, progressbar=None
+):
+    try:
+        admin_client = AdminClient(config)
+        group_offsets = admin_client.list_consumer_group_offsets(
+            [ConsumerGroupTopicPartitions(group_id)]
+        )
+        if progressbar:
+            progressbar.update(1)
+    except Exception as e:
+        print(f"Failed to fetch offsets for group {group_id}: {e}")
+        return None
+
+    for group_id, future in group_offsets.items():
+        try:
+            response_offset_info = future.result()
+            if len(response_offset_info.topic_partitions) == 0:
+                return None
+            elif response_offset_info.topic_partitions[0].topic != topic_name:
+                return None
+            result = []
+            for topic_partition in response_offset_info.topic_partitions:
+                details = {
+                    "topic": topic_name,
+                    "consumer_group": response_offset_info.group_id,
+                }
+                details["partition"] = topic_partition.partition
+                details["consumer_offset"] = topic_partition.offset
+                if topic_latest_offset:
+                    details["lag"] = (
+                        topic_latest_offset[topic_partition.partition]
+                        - topic_partition.offset
+                    )
+                    details["topic_offset"] = topic_latest_offset[
+                        topic_partition.partition
+                    ]
+                result.append(details)
+            return result
+        except KafkaException as e:
+            print("Failed to list {}: {}".format(group_id, e))
+            return None
 
 
 # Usage example
@@ -263,4 +405,4 @@ if __name__ == "__main__":
     input("Press Enter to start consuming messages...")
     # Start consuming messages
     consumer.consume_messages()
-    # consumer.consume_from_offset(partition=1, offset=2350)
+    # consumer.consume_messages(partition=1, offset=2350)
