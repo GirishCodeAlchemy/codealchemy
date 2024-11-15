@@ -17,7 +17,7 @@ input("Press Enter to start consuming messages...")
 # Start consuming messages and various options
 
 consumer.consume_messages()
-# consumer.consume_from_offset(partition=1, offset=2413)
-# consumer.consume_from_offset(offset=2143)
-# consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z", partition=1)
-# consumer.consume_from_timestamp(timestamp="2024-11-13T22:39:00.999Z")
+# consumer.consume_messages(partition=1, offset=2413)
+# consumer.consume_messages(offset=2143)
+# consumer.consume_messages(timestamp="2024-11-13T22:39:00.999Z", partition=1)
+# consumer.consume_messages(timestamp="2024-11-13T22:39:00.999Z")
