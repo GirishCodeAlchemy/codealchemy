@@ -389,7 +389,8 @@ def find_consumer_group_offsets_for_topic(
             return result
         except KafkaException as e:
             print("Failed to list {}: {}".format(group_id, e))
-            return None
+    del admin_client
+    return None
 
 
 # Usage example
