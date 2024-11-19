@@ -164,9 +164,12 @@ main_function()
 
    If you need to list all the Consumer Group Offset
 
+   > [!NOTE]
+   > Before running the below code try to increase the ulimit for the number of open file descriptors `ulimit -n 1048575` since it will be running using threadpool executor
+
    ```python
    consumer_info = kafkaUtils.KafkaConsumer(config_file, topic)
-   consumer_info.list_consumer_groups_offsets(timestamp="2024-11-13T22:39:00.999Z", partition=1)
+   consumer_info.list_consumer_groups_offsets()
    ```
 
    Sample `config.json`
