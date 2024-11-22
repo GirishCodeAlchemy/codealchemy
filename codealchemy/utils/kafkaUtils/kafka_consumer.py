@@ -183,6 +183,20 @@ class KafkaConsumer:
 
         self.start_consuming_message(timeout)
 
+    def consume_message_callback(
+        self, offset=None, timestamp=None, partition=None, timeout=1.0
+    ):
+        # Subscribe to the specified topic
+        if offset is not None:
+            self.set_consumer_from_offset(offset, partition)
+        elif timestamp is not None:
+            self.set_consumer_from_timestamp(timestamp, partition)
+        else:
+            self.consumer.subscribe([self.topic])
+
+        return self.consumer
+
+
     def set_consumer_from_offset(self, offset, partition=None):
         # Assign a specific partition and offset to start consuming from
         if partition is not None:
